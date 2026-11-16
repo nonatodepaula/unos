@@ -1,0 +1,282 @@
+{% extends 'rateio/base.html' %}
+{% block content %}
+<div class="card mb-4 shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center bg-white">
+        <div>
+            <h3 class="mb-0">{{ evento.titulo }}
+                {% if evento.status == 'ABERTO' %}
+                    <span class="badge bg-success fs-6 align-middle">Aberto</span>
+                {% else %}
+                    <span class="badge bg-secondary fs-6 align-middle">Encerrado</span>
+                {% endif %}
+            </h3>
+            <small class="text-muted">Criador: {{ evento.criador.username }}</small>
+        </div>
+        <div>
+            <form action="{% url 'alternar_status_evento' evento.pk %}" method="post" class="d-inline">
+                {% csrf_token %}
+                {% if evento.status == 'ABERTO' %}
+                    <button type="submit" class="btn btn-warning btn-sm fw-bold">Encerrar Evento</button>
+                {% else %}
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Reabrir Evento</button>
+                {% endif %}
+            </form>
+            <a href="{% url 'lista_eventos' %}" class="btn btn-secondary btn-sm ms-2">Voltar</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <p><strong>Descrição:</strong> {{ evento.descricao|default:"Sem descrição." }}</p>
+
+        <!-- Resumo das Cotas por Categoria -->
+        <div class="row g-3 mb-4 text-center">
+            <div class="col-md-3">
+                <div class="card bg-light border-primary h-100">
+                    <div class="card-body py-2">
+                        <small class="text-muted fw-bold">RANCHO PRINCIPAL</small>
+                        <h5 class="mb-0 text-primary">R$ {{ evento.total_rancho }}</h5>
+                        <small class="text-muted">{{ evento.qtd_rancho }} part. (R$ {{ evento.media_rancho }}/pessoa)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light border-info h-100">
+                    <div class="card-body py-2">
+                        <small class="text-muted fw-bold">CAFÉ</small>
+                        <h5 class="mb-0 text-info">R$ {{ evento.total_cafe }}</h5>
+                        <small class="text-muted">{{ evento.qtd_cafe }} part. (R$ {{ evento.media_cafe }}/pessoa)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light border-warning h-100">
+                    <div class="card-body py-2">
+                        <small class="text-muted fw-bold">COTA EXTRA</small>
+                        <h5 class="mb-0 text-warning">R$ {{ evento.total_extra }}</h5>
+                        <small class="text-muted">{{ evento.qtd_total_participantes }} part. (R$ {{ evento.media_extra }}/pessoa)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark text-white h-100">
+                    <div class="card-body py-2">
+                        <small class="text-light fw-bold">CUSTO TOTAL GERAL</small>
+                        <h5 class="mb-0">R$ {{ evento.custo_total }}</h5>
+                        <small class="text-light">{{ evento.qtd_total_participantes }} participante(s) no total</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="row">
+            <!-- Coluna da Esquerda: Tabela de Participantes e Formulários -->
+            <div class="col-lg-7 mb-4">
+                <h4>Participantes, Modalidades e Balanço</h4>
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered table-sm align-middle bg-white">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Participante</th>
+                                <th>Modalidade</th>
+                                <th class="text-end">Pagou (R$)</th>
+                                <th class="text-end">Cota Devida (R$)</th>
+                                <th class="text-end">Saldo</th>
+                                {% if evento.status == 'ABERTO' %}<th class="text-center">Ações</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in resumo %}
+                            <tr>
+                                <td><strong>{{ item.participante.usuario.username }}</strong></td>
+                                <td>
+                                    {% if item.participante.modalidade == 'RANCHO_CAFE' %}
+                                        <span class="badge bg-primary">Rancho + Café + Extra</span>
+                                    {% elif item.participante.modalidade == 'SO_CAFE' %}
+                                        <span class="badge bg-info text-dark">Só Café + Extra</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">Só Cota Extra</span>
+                                    {% endif %}
+                                    <br>
+                                    <small class="text-muted" style="font-size: 0.75rem;">
+                                        R: {{ item.participante.contrib_rancho }} | C: {{ item.participante.contrib_cafe }} | E: {{ item.participante.contrib_extra }}
+                                    </small>
+                                </td>
+                                <td class="text-end">R$ {{ item.total_pagou }}</td>
+                                <td class="text-end">R$ {{ item.total_deve }}</td>
+                                <td class="text-end fw-bold {% if item.saldo > 0 %}text-success{% elif item.saldo < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                    {% if item.saldo > 0 %}+{% endif %}R$ {{ item.saldo }}
+                                </td>
+                                {% if evento.status == 'ABERTO' %}
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'editar_participante' evento.pk item.participante.pk %}" class="btn btn-outline-primary py-0 px-1" title="Editar">✏️</a>
+                                        <a href="{% url 'excluir_participante' evento.pk item.participante.pk %}" class="btn btn-outline-danger py-0 px-1" title="Excluir">🗑️</a>
+                                    </div>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="{% if evento.status == 'ABERTO' %}6{% else %}5{% endif %}" class="text-center text-muted">Nenhum participante cadastrado neste evento.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if evento.status == 'ABERTO' %}
+                    <div class="card p-3 mb-3 bg-light border-primary">
+                        <h5>Sua Participação & Contribuições</h5>
+                        <form action="{% url 'entrar_ou_atualizar_evento' evento.pk %}" method="post" id="form-minha-participacao">
+                            {% csrf_token %}
+                            <div class="mb-2">
+                                <label class="form-label fw-bold">Modalidade de Participação:</label>
+                                {{ form_minha.modalidade }}
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small">Gasto Rancho (R$):</label>
+                                    {{ form_minha.contrib_rancho }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Gasto Café (R$):</label>
+                                    {{ form_minha.contrib_cafe }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Gasto Extra (R$):</label>
+                                    {{ form_minha.contrib_extra }}
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    {% if user_participante %}Atualizar Meus Dados{% else %}Entrar no Evento{% endif %}
+                                </button>
+                        </form>
+                        {% if user_participante %}
+                            <form action="{% url 'sair_evento' evento.pk %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Sair do Evento</button>
+                            </form>
+                        {% endif %}
+                            </div>
+                    </div>
+
+                    <div class="card p-3 bg-light">
+                        <h5>Especificar/Adicionar Outro Participante</h5>
+                        <form action="{% url 'adicionar_participante' evento.pk %}" method="post" id="form-adicionar-participante">
+                            {% csrf_token %}
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-5">
+                                    <label class="form-label small">Usuário:</label>
+                                    {{ form_participante.usuario }}
+                                </div>
+                                <div class="col-md-7">
+                                    <label class="form-label small">Modalidade:</label>
+                                    {{ form_participante.modalidade }}
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label small">Rancho (R$):</label>
+                                    {{ form_participante.contrib_rancho }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Café (R$):</label>
+                                    {{ form_participante.contrib_cafe }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Extra (R$):</label>
+                                    {{ form_participante.contrib_extra }}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-secondary btn-sm">Adicionar Participante</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Coluna da Direita: Compensação Final -->
+            <div class="col-lg-5">
+                <h4>Rateio Final (Pares Devedor &rarr; Credor)</h4>
+                <p class="small text-muted">
+                    O cálculo consolida o saldo de cada participante considerando apenas as cotas das quais participa (Rancho, Café e Extra) e compensa diretamente quem pagou a menos com quem pagou a mais.
+                </p>
+                {% if rateio %}
+                    <div class="list-group shadow-sm">
+                        {% for t in rateio %}
+                            <div class="list-group-item list-group-item-warning d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ t.devedor.username }}</strong> paga para <strong>{{ t.credor.username }}</strong>
+                                </div>
+                                <span class="badge bg-dark fs-6">R$ {{ t.valor }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-secondary">
+                        Não há transferências pendentes no momento (saldos já estão igualados ou faltam participantes).
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    function setupModalidadeDynamic(modSelect, ranchoInput, cafeInput, formEl) {
+        if (!modSelect || !ranchoInput || !cafeInput) return;
+
+        function updateFields() {
+            const val = modSelect.value;
+            if (val === 'SO_EXTRA') {
+                ranchoInput.value = '0.00';
+                cafeInput.value = '0.00';
+                ranchoInput.readOnly = true;
+                cafeInput.readOnly = true;
+                ranchoInput.style.backgroundColor = '#e9ecef';
+                cafeInput.style.backgroundColor = '#e9ecef';
+            } else if (val === 'SO_CAFE') {
+                ranchoInput.value = '0.00';
+                ranchoInput.readOnly = true;
+                cafeInput.readOnly = false;
+                ranchoInput.style.backgroundColor = '#e9ecef';
+                cafeInput.style.backgroundColor = '#fff';
+            } else {
+                ranchoInput.readOnly = false;
+                cafeInput.readOnly = false;
+                ranchoInput.style.backgroundColor = '#fff';
+                cafeInput.style.backgroundColor = '#fff';
+            }
+        }
+
+        modSelect.addEventListener('change', updateFields);
+        updateFields();
+
+        if (formEl) {
+            formEl.addEventListener('submit', function() {
+                ranchoInput.readOnly = false;
+                cafeInput.readOnly = false;
+            });
+        }
+    }
+
+    setupModalidadeDynamic(
+        document.getElementById('id_modalidade'),
+        document.getElementById('id_contrib_rancho'),
+        document.getElementById('id_contrib_cafe'),
+        document.getElementById('form-adicionar-participante')
+    );
+
+    setupModalidadeDynamic(
+        document.getElementById('id_minha_modalidade'),
+        document.getElementById('id_minha_contrib_rancho'),
+        document.getElementById('id_minha_contrib_cafe'),
+        document.getElementById('form-minha-participacao')
+    );
+});
+</script>
+{% endblock %}

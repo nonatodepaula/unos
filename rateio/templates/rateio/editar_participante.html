@@ -1,0 +1,84 @@
+{% extends 'rateio/base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white fw-bold">
+                Editar Participante: {{ participante.usuario.username }} ({{ evento.titulo }})
+            </div>
+            <div class="card-body">
+                <form method="post" id="form-editar-participante">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Modalidade de Participação:</label>
+                        {{ form.modalidade }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Gasto Rancho Principal (R$):</label>
+                        {{ form.contrib_rancho }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Gasto Café (R$):</label>
+                        {{ form.contrib_cafe }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Gasto Cota Extra (R$):</label>
+                        {{ form.contrib_extra }}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                        <a href="{% url 'detalhe_evento' evento.pk %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const modSelect = document.getElementById('id_modalidade');
+    const ranchoInput = document.getElementById('id_contrib_rancho');
+    const cafeInput = document.getElementById('id_contrib_cafe');
+    const formEl = document.getElementById('form-editar-participante');
+
+    function updateFields() {
+        if (!modSelect || !ranchoInput || !cafeInput) return;
+        const val = modSelect.value;
+        if (val === 'SO_EXTRA') {
+            ranchoInput.value = '0.00';
+            cafeInput.value = '0.00';
+            ranchoInput.readOnly = true;
+            cafeInput.readOnly = true;
+            ranchoInput.style.backgroundColor = '#e9ecef';
+            cafeInput.style.backgroundColor = '#e9ecef';
+        } else if (val === 'SO_CAFE') {
+            ranchoInput.value = '0.00';
+            ranchoInput.readOnly = true;
+            cafeInput.readOnly = false;
+            ranchoInput.style.backgroundColor = '#e9ecef';
+            cafeInput.style.backgroundColor = '#fff';
+        } else {
+            ranchoInput.readOnly = false;
+            cafeInput.readOnly = false;
+            ranchoInput.style.backgroundColor = '#fff';
+            cafeInput.style.backgroundColor = '#fff';
+        }
+    }
+
+    if (modSelect) {
+        modSelect.addEventListener('change', updateFields);
+        updateFields();
+    }
+
+    if (formEl) {
+        formEl.addEventListener('submit', function() {
+            if (ranchoInput) ranchoInput.readOnly = false;
+            if (cafeInput) cafeInput.readOnly = false;
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'rateio/base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Eventos de Rateio</h2>
+    <a href="{% url 'criar_evento' %}" class="btn btn-success">+ Criar Novo Evento</a>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-primary shadow-sm">
+            <div class="card-header bg-primary text-white fw-bold">
+                Eventos Abertos ({{ eventos_abertos.count }})
+            </div>
+            <div class="card-body">
+                {% if eventos_abertos %}
+                    <div class="list-group">
+                    {% for evento in eventos_abertos %}
+                        <a href="{% url 'detalhe_evento' evento.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ evento.titulo }}</strong><br>
+                                <small class="text-muted">Criado por: {{ evento.criador.username }} | {{ evento.qtd_total_participantes }} participante(s) | Total: R$ {{ evento.custo_total }}</small>
+                            </div>
+                            <span class="badge bg-success">Aberto</span>
+                        </a>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Nenhum evento aberto no momento.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card border-secondary shadow-sm">
+            <div class="card-header bg-secondary text-white fw-bold">
+                Eventos Encerrados ({{ eventos_encerrados.count }})
+            </div>
+            <div class="card-body">
+                {% if eventos_encerrados %}
+                    <div class="list-group">
+                    {% for evento in eventos_encerrados %}
+                        <a href="{% url 'detalhe_evento' evento.pk %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ evento.titulo }}</strong><br>
+                                <small class="text-muted">Criado por: {{ evento.criador.username }} | Total Final: R$ {{ evento.custo_total }}</small>
+                            </div>
+                            <span class="badge bg-secondary">Encerrado</span>
+                        </a>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">Nenhum evento encerrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
